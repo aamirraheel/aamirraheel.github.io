@@ -327,7 +327,10 @@ i { color: #ff486e; transition-timing-function: ease-in-out; -moz-transition-tim
 .margin-one-bottom { margin-bottom:1% !important;}
 .margin-two-bottom { margin-bottom:2% !important;}
 .margin-three-bottom { margin-bottom:3% !important;}
-.margin-four-bottom { margin-bottom:4% !important;}
+
+/*by raheel*/
+/*.margin-four-bottom { margin-bottom:4% !important;}*/
+
 .margin-five-bottom { margin-bottom:5% !important;}
 .margin-six-bottom { margin-bottom:6% !important;}
 .margin-seven-bottom { margin-bottom:7% !important;}
