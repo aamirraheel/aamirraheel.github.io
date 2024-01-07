@@ -812,7 +812,7 @@ header { background-color: #e5e5e5; position: fixed; z-index: 999; width: 100vw;
 .number-design .sub-title { font-size: 18px; line-height: 22px; display: inline-block; }
 
 /* slide - employment */
-.gray-box { position: relative; width: 48.5%; padding-left: 5%; padding-right: 5%;}
+.gray-box { position: relative; width: 48.5%; padding-left: 5%; padding-right: 5%; opacity: 90%;}
 .gray-box .fa { margin-top: -30px; margin-bottom: 9%; font-size: 60px; display: block;}
 .gray-box-main { height: 214px; margin-top: 3.8%;}
 .gray-box p { font-size: 16px !important; line-height: 28px !important;}
