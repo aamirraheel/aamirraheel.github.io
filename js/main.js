@@ -1328,33 +1328,33 @@ $('body').on('touchstart click', function (e) {
 });
 
 //contact form button event
-$("#contact-button").on('click', function (event) {
-    var error = ValidationContactForm();
-    var _this = $(this);
-    if (error) {
-        _this.next('.loading').removeClass('display-none');
-        _this.prop('disabled', true);
-        $.ajax({
-            type: "POST",
-            url: "email-templates/contact.php",
-            data: $("#contactform").serialize(),
-            success: function (result) {
-                $('input[type=text],textarea').each(function () {
-                    $(this).val('');
-                })
-                $("#success").html(result);
-                $("#success").fadeIn("slow");
-                $('#success').delay(4000).fadeOut("slow");
-                _this.next('.loading').addClass('display-none');
-                _this.prop('disabled', false);
-            },
-            error: function () {
-                _this.next('.loading').addClass('display-none');
-                _this.prop('disabled', false);
-            }
-        });
-    }
-});
+//$("#contact-button").on('click', function (event) {
+//    var error = ValidationContactForm();
+//    var _this = $(this);
+//    if (error) {
+//        _this.next('.loading').removeClass('display-none');
+//        _this.prop('disabled', true);
+//        $.ajax({
+//            type: "POST",
+//            url: "email-templates/contact.php",
+//            data: $("#contactform").serialize(),
+//            success: function (result) {
+//                $('input[type=text],textarea').each(function () {
+//                    $(this).val('');
+//                })
+//                $("#success").html(result);
+//                $("#success").fadeIn("slow");
+//                $('#success').delay(4000).fadeOut("slow");
+//                _this.next('.loading').addClass('display-none');
+//                _this.prop('disabled', false);
+//            },
+//            error: function () {
+//                _this.next('.loading').addClass('display-none');
+//                _this.prop('disabled', false);
+//            }
+//        });
+//    }
+//});
 
 
 
