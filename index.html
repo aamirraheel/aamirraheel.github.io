@@ -48,11 +48,172 @@
     <link rel="stylesheet" href="css/Modal.css" />
     <!-- responsive -->
     <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/mobile.css" />
     <!--[if IE]>
       <script src="js/html5shiv.js"></script>
     <![endif]-->
     <!-- java script libraries -->
     <script type="text/javascript" src="js/modernizr.js"></script>
+
+    <!-- Mobile / responsive fixes (loaded after the template CSS so they take priority) -->
+    <style id="mobile-fixes">
+      .m-only{display:none}
+      /* Welcome popup: the photo was fixed at 450px high, so on small phones the text and download link were cut off,
+         and on a phone held sideways only the photo was visible. Now it shrinks and scrolls if needed. */
+      @media (max-width:767px),(max-height:700px){
+        .modal{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;box-sizing:border-box}
+        .modal-content{height:auto!important;max-height:100%;margin:0 auto!important;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        .modal-img{height:auto!important;max-height:38vh;object-fit:cover;flex:none}
+        .modal-text{height:auto!important;flex:none;padding:18px 16px 22px!important;font-size:16px!important;line-height:24px!important}
+      }
+      /* Phones and tablets */
+      @media (max-width:991px){
+        /* menu button: 44px is the minimum comfortable touch size (was 35 x 33) */
+        .cd-nav-trigger{height:44px;width:44px}
+        .cd-nav-trigger span{left:13px;top:20px}
+        /* bigger tap targets for the template buttons (were about 19px high) */
+        .small-btn{padding:12px 22px 11px}
+        input.small-btn{padding:12px 22px 11px!important}
+        .medium-btn{padding:13px 22px 11px}
+        /* photo panels were 720px high on every phone */
+        .sm-col-height{height:min(560px,110vw)!important}
+      }
+      @media (max-width:767px){
+        .xs-col-height{height:min(560px,120vw)!important}
+        /* 16px stops iPhones from zooming the page in when a form field is tapped (they were 13px) */
+        input,textarea,select{font-size:16px!important}
+      }
+    </style>
+    <!-- Portfolio gallery (overlay + lightbox) -->
+    <style>
+      :root{--pg-accent:#d6246e;--pg-bg:#0f0f12;--pg-row:200px;--pg-gap:50px}
+      html.pg-lock,html.pg-lock body{overflow:hidden!important}
+      .pg,.lb{position:fixed;top:0;right:0;bottom:0;left:0;display:none;font-family:inherit;color:#fff}
+      .pg-back{position:fixed;top:0;right:0;bottom:0;left:0;z-index:99989;background:rgba(0,0,0,.62);display:none;cursor:pointer}
+      .pg-back.open{display:block;animation:pgFade .3s ease}
+      @keyframes pgFade{from{opacity:0}to{opacity:1}}
+      .pg{top:var(--pg-gap);right:var(--pg-gap);bottom:var(--pg-gap);left:var(--pg-gap);z-index:99990;background:var(--pg-bg);flex-direction:column;border-radius:8px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 25px 80px 10px rgba(0,0,0,.9),0 0 120px rgba(0,0,0,.7)}
+      .pg.open{display:flex;animation:pgIn .35s ease}
+      @keyframes pgIn{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
+      .pg-head{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto;flex-wrap:wrap}
+      .pg-title{line-height:1}
+      .pg-title h2::before{content:"";display:inline-block;width:26px;height:2px;margin:0 10px 0 0;padding:0;background:var(--pg-accent);vertical-align:calc(.36em - 1px)}
+      .pg-title h2{display:block;margin:0!important;padding:0!important;font-size:15px!important;line-height:20px!important;letter-spacing:3px;text-transform:uppercase;font-weight:800!important;-webkit-text-stroke:.5px #fff;white-space:nowrap;color:#fff}
+      .pg-filter{list-style:none;margin:0 auto 0 14px;padding:0;display:flex;align-items:center;gap:0;flex-wrap:wrap}
+      .pg-filter li{display:flex;align-items:center;margin:0;padding:0}
+      .pg-filter li::before{content:none!important;display:none!important}
+      .pg-filter button{background:none;border:1px solid transparent;border-radius:3px;color:#aaa;text-transform:uppercase;letter-spacing:1.2px;font-size:11px;line-height:1;padding:7px 11px;cursor:pointer;transition:.2s}
+      .pg-filter button:hover{color:#fff}
+      .pg-filter button.active{color:var(--pg-accent);font-weight:700;background:none;border-color:transparent}
+      .pg-filter button{display:inline-flex;flex-direction:column;align-items:center}
+      .pg-filter button::after{content:attr(data-t);display:block;height:0;overflow:hidden;visibility:hidden;font-weight:700;pointer-events:none}
+      .pg-close,.lb-close{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:transparent;font-size:0;line-height:0;padding:0;cursor:pointer;transition:background .2s,border-color .2s,transform .3s;transform-origin:50% 50%}
+      .pg-close{position:relative;flex:none}
+      .pg-close::before,.pg-close::after,.lb-close::before,.lb-close::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2px;margin:-1px 0 0 -8px;background:#fff;border-radius:1px}
+      .pg-close::before,.lb-close::before{transform:rotate(45deg)}
+      .pg-close::after,.lb-close::after{transform:rotate(-45deg)}
+      .pg-close:hover,.lb-close:hover{background:var(--pg-accent);border-color:var(--pg-accent);transform:rotate(90deg)}
+      /* gallery scrollbar: black track, dark-grey slider + arrows */
+      .pg-body::-webkit-scrollbar{width:14px;background:#000}
+      .pg-body::-webkit-scrollbar-track{background:#000}
+      .pg-body::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:7px;border:2px solid #000}
+      .pg-body::-webkit-scrollbar-thumb:hover{background:#6a6a6a}
+      .pg-body::-webkit-scrollbar-button:single-button{display:block;width:14px;height:14px;background-color:#000;background-repeat:no-repeat;background-position:center}
+      .pg-body::-webkit-scrollbar-button:single-button:vertical:decrement{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14'><path d='M3.5 9.5l3.5-4 3.5 4z' fill='%234a4a4a'/></svg>")}
+      .pg-body::-webkit-scrollbar-button:single-button:vertical:increment{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14'><path d='M3.5 4.5l3.5 4 3.5-4z' fill='%234a4a4a'/></svg>")}
+      .pg-body::-webkit-scrollbar-button:single-button:hover{background-color:#111}
+      @supports not selector(::-webkit-scrollbar){.pg-body{scrollbar-color:#4a4a4a #000;scrollbar-width:auto}}
+      .pg-note{flex:0 0 auto;margin:0;padding:8px 22px;font-size:12px;line-height:1.4;color:#8a8a93;border-bottom:1px solid rgba(255,255,255,.05);min-height:34px}
+      .pg-body{overscroll-behavior:contain;flex:1 1 auto;overflow-y:auto;padding:16px 22px 30px;-webkit-overflow-scrolling:touch}
+      .pg-grid{display:grid;grid-template-columns:repeat(var(--n,4),1fr);grid-auto-rows:var(--pg-row);grid-auto-flow:dense;gap:12px;max-width:1500px;margin:0 auto}
+      .pg-tile{-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;display:block;background:#1b1b20;cursor:pointer;border-radius:3px;outline:none}
+      .pg-sort{display:flex;align-items:center;gap:8px;flex:none}
+      .pg-sort label{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#8a8a93;margin:0}
+      .pg-sort select{width:auto;max-width:none;margin:0;background:#000 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23999'/></svg>") no-repeat right 10px center;-webkit-appearance:none;-moz-appearance:none;appearance:none;color:#ddd;border:1px solid rgba(255,255,255,.15);border-radius:3px;font-size:12px;font-weight:500;line-height:normal;letter-spacing:.5px;padding:0 30px 0 12px;height:34px;cursor:pointer}
+      .pg-sort select:hover,.pg-sort select:focus{outline:none;border-color:var(--pg-accent);color:#fff}
+      .pg-filter.pg-order{margin:0 0 0 4px;padding-left:12px;border-left:1px solid rgba(255,255,255,.14);flex:none}
+      .pg-tile.hide{display:none}
+      .pg-empty{grid-column:1/-1;margin:40px 0;text-align:center;color:#8a8a93;font-size:14px}
+      .pg-tile img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+      .pg-tile:hover img,.pg-tile:focus img{transform:scale(1.08)}
+      .pg-tile figcaption{position:absolute;top:auto;right:0;bottom:0;left:0;padding:40px 16px 14px;background:linear-gradient(transparent,rgba(0,0,0,.85));transform:translateY(35%);opacity:0;transition:.35s}
+      .pg-tile:hover figcaption,.pg-tile:focus figcaption{transform:none;opacity:1}
+      .pg-tile h3{margin:0;font-size:16px;color:#fff;font-weight:600}
+      .pg-tile figcaption span{display:block;font-size:12px;color:#ccc;margin-top:3px}
+      .pg-tile .pg-count{position:absolute;top:8px;right:8px;display:block;height:16px;line-height:16px;padding:0 8px;border-radius:8px;font-size:10px;font-style:normal;font-weight:600;letter-spacing:.5px;color:#000;background:var(--pg-accent)}
+      .pg-tile.miss::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:repeating-linear-gradient(45deg,#1b1b20,#1b1b20 10px,#222228 10px,#222228 20px)}
+      /* lightbox */
+      .lb{z-index:99999;background:#000}
+      .lb.open{display:block;animation:pgIn .25s ease}
+      .lb-track{position:absolute;top:0;right:0;bottom:0;left:0;overscroll-behavior-x:contain;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+      .lb-track::-webkit-scrollbar{display:none}
+      .lb-slide{flex:0 0 100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center}
+      .lb-slide img{width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none}
+      .lb-slide .lb-miss{color:#888;font-size:14px;letter-spacing:1px}
+      .lb-close{position:absolute;top:16px;right:16px;z-index:5}
+      .lb-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.4);color:#fff;font-size:28px;cursor:pointer;transition:.2s}
+      .lb-nav:hover{background:var(--pg-accent);border-color:var(--pg-accent)}
+      .lb-prev{left:16px}.lb-next{right:16px}
+      .lb-nav[disabled]{opacity:.25;pointer-events:none}
+      .lb-count{position:absolute;top:26px;left:24px;z-index:5;font-size:13px;letter-spacing:2px;color:#ddd;text-shadow:0 1px 4px #000}
+      .lb-info{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:80px 90px 28px 28px;background:linear-gradient(transparent,rgba(0,0,0,.88) 55%);max-height:55vh;overflow-y:auto;transition:opacity .3s,transform .3s}
+      .lb-info.off{opacity:0;transform:translateY(20px);pointer-events:none}
+      .lb-info h3{margin:0 0 4px;font-size:26px;color:#fff;font-weight:600}
+      .lb-cap{margin:0 0 10px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--pg-accent)}
+      .lb-det{margin:0;max-width:760px;font-size:15px;line-height:1.7;color:#ddd}
+      .lb-toggle{position:absolute;right:20px;bottom:24px;z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:#fff;font-size:18px;font-style:italic;font-family:Georgia,serif;cursor:pointer}
+      .lb-toggle:hover{background:var(--pg-accent);border-color:var(--pg-accent)}
+      @media(max-width:1000px){:root{--pg-row:170px}}
+      @media(max-width:600px){.pg-sort label{display:none}:root{--pg-row:140px;--pg-gap:12px}.pg-head{padding:10px 12px;gap:8px}.pg-note{padding:6px 12px}.pg-body{padding:10px 10px 24px}.pg-grid{gap:8px}.pg-filter{order:3;margin:0;width:100%}.pg-close{margin-left:auto}.lb-info{padding:60px 66px 18px 16px}.lb-info h3{font-size:20px}.lb-nav{width:40px;height:40px;font-size:22px}.lb-prev{left:6px}.lb-next{right:6px}}
+    
+      /* ---- phones and tablets ---- */
+      /* touch screens have no hover, so captions are always visible on the tiles and the zoom effect is off */
+      @media (hover:none){
+        .pg-tile figcaption{opacity:1;transform:none;padding:28px 10px 8px}
+        .pg-tile h3{font-size:13px;line-height:1.25}
+        .pg-tile figcaption span{font-size:11px;line-height:1.3}
+        .pg-tile:hover img,.pg-tile:focus img{transform:none}
+      }
+      /* comfortable tap sizes */
+      @media (pointer:coarse){
+        .pg-filter button{padding:11px 12px;min-height:40px}
+        .pg-sort select{height:38px}
+        .lb-nav{width:46px;height:46px}
+      }
+      @media(max-width:600px){
+        /* filters stay on one line and scroll sideways instead of taking up several rows */
+        .pg-filter{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}
+        .pg-filter::-webkit-scrollbar{display:none}
+        .pg-filter li{flex:none}
+        .pg-filter.pg-order{order:4;width:100%;margin:0;padding-left:0;border-left:0;flex:none}
+        .pg-head{gap:4px 8px}
+        .pg-filter button{padding:8px 10px;min-height:36px}
+        .pg-close{width:40px;height:40px}
+        .pg-title h2{font-size:13px!important;letter-spacing:2px}
+        .pg-title h2::before{width:18px;margin-right:8px}
+        /* 16px stops iPhones from zooming the page when the Sort menu is opened */
+        .pg-sort select{font-size:16px;height:38px;padding:0 28px 0 10px}
+        .pg-note{font-size:11px;min-height:0}
+        .lb-info{max-height:42vh}
+        .lb-det{font-size:14px}
+        .lb-count{top:22px;left:16px}
+        .lb-close{top:10px;right:10px}
+      }
+      /* phones held sideways: use the little height there is */
+      @media(max-height:500px){
+        :root{--pg-gap:8px;--pg-row:120px}
+        .pg-head{padding:6px 12px;flex-wrap:nowrap;gap:8px}
+        .pg-filter{order:0;flex:1 1 auto;min-width:0;width:auto;margin:0 0 0 6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .pg-filter::-webkit-scrollbar{display:none}
+        .pg-filter li{flex:none}
+        .pg-sort label{display:none}
+        .pg-sort select{height:34px;font-size:14px!important}
+        .pg-filter.pg-order{flex:none;overflow:visible;width:auto;margin:0 0 0 2px;padding-left:8px;border-left:1px solid rgba(255,255,255,.14)}
+        .pg-close{width:36px;height:36px;margin-left:0}
+        .pg-note{display:none}
+        .lb-info{max-height:60vh;padding-top:40px}
+      }
+</style>
   </head>
   <body>
     <!-- Modal -->
@@ -453,6 +614,9 @@
                       Adjustments to mock-ups as necessary to address problems
                       encountered.
                     </p>
+                    <div class="m-only m-resume">
+                      <a href="cv/ar-cv.pdf" target="_blank" class="btn small-btn link-button highlight-button-magenta">Download Resume <i class="fa fa-long-arrow-right text-white"></i></a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1258,9 +1422,9 @@
                             </li>
                           </ul>
                           <a
-                            id="open-btn"
-                            href="#portfolio-list"
-                            class="btn small-btn highlight-button-magenta inner-link sub-slide"
+                            id="open-gallery"
+                            href="#"
+                            class="btn small-btn highlight-button-magenta"
                             >View Portfolio
                             <i class="fa fa-long-arrow-right text-white"></i
                           ></a>
@@ -1273,411 +1437,7 @@
               </div>
             </li>
             <!-- end sub slider item -->
-            <!-- sub slider item -->
-            <li id="portfolio-list">
-              <div class="cd-slider-content">
-                <div class="content-wrapper vertical-align-top">
-                  <!-- slider content -->
-                  <div class="mCustomScrollbar">
-                    <div
-                      class="col-md-12 col-sm-12 col-xs-12 text-center padding-three-lr xs-padding-five-top xs-no-padding-lr work-4col"
-                    >
-                      <!-- filter tab -->
-                      <!-- filter navigation -->
-                      <ul
-                        class="portfolio-filter nav nav-tabs no-border text-uppercase margin-0auto display-inline-block margin-10px-top margin-5px-bottom"
-                      >
-                        <li class="nav active xs-display-inline">
-                          <a href="#" data-filter="*" class="xs-display-inline"
-                            >All</a
-                          >
-                        </li>
-                        <li class="nav">
-                          <a
-                            href="#"
-                            data-filter=".design"
-                            class="xs-display-inline"
-                            >Design</a
-                          >
-                        </li>
-                        <li class="nav">
-                          <a
-                            href="#"
-                            data-filter=".graphics"
-                            class="xs-display-inline"
-                            >Graphics</a
-                          >
-                        </li>
-                        <li class="nav">
-                          <a
-                            href="#"
-                            data-filter=".branding"
-                            class="xs-display-inline"
-                            >Branding</a
-                          >
-                        </li>
-                        <li class="nav">
-                          <a
-                            href="#"
-                            data-filter=".photography"
-                            class="xs-display-inline"
-                            >Photography</a
-                          >
-                        </li> 
-                      </ul>
-                      <!-- end filter navigation -->
-                      <div class="row">
-                        <div class="grid-gallery">
-                          <div class="tab-content">
-                            <ul class="masonry-items grid">
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="images/prtf/L-1.jpg"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here1..."
-                                      ><img src="images/logo.jpg" alt="Corporate Identity" /> </a>
-									  
-									  
-									  <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Corporate Identity<span
-                                          class="text-white display-block"
-                                          >Logo Crafting</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                        src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Corporate Branding<span
-                                          class="text-white display-block"
-                                          >Corporate Image /  Stationary / Branding</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                        src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="images/logo.jpg"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Advertising<span
-                                          class="text-white display-block"
-                                          >Campaigns</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                        src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Demo<span
-                                          class="text-white display-block"
-                                          >Demo Gallery</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                        src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Demo<span
-                                          class="text-white display-block"
-                                          >Demo Gallery</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                       src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Demo<span
-                                          class="text-white display-block"
-                                          >Demo Gallery</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                       src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Demo<span
-                                          class="text-white display-block"
-                                          >Demo gallery</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                              <!-- portfolio item -->
-                              <li class="graphics photography branding">
-                                <figure>
-                                  <div class="gallery-img">
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><img
-                                        src="images/uc.jpg"
-                                        alt="" /></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a
-                                    ><a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                    ></a>
-                                  </div>
-                                  <figcaption>
-                                    <a
-                                      href="http://placehold.it/1000x698"
-                                      class="galleryitem"
-                                      data-group="1"
-                                      title="Awesome Image Title Here..."
-                                      ><h3 class="text-white">
-                                        Demo<span
-                                          class="text-white display-block"
-                                          >Demo Gallery</span
-                                        >
-                                      </h3></a
-                                    >
-                                  </figcaption>
-                                </figure>
-                              </li>
-                              <!-- end portfolio item -->
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- end filter tab -->
-                    </div>
-                  </div>
-                  <!-- end slider content -->
-                </div>
-              </div>
-            </li>
-            <!-- end sub slider item -->
+            <!-- portfolio gallery now opens as a full-screen overlay (see #pg at end of body) -->
           </ol>
           <!-- end sub slider -->
         </li>
@@ -1897,6 +1657,386 @@
     <script type="text/javascript" src="js/main.js"></script>
     <!-- Modal Script -->
     <script type="text/javascript" src="js/modal.js"></script>
+
+    <!-- ===== Portfolio gallery overlay ===== -->
+    <div class="pg-back" id="pgBack"></div>
+    <div class="pg" id="pg" role="dialog" aria-modal="true" aria-label="Portfolio gallery" aria-hidden="true">
+      <div class="pg-head">
+        <div class="pg-title"><h2>Portfolio</h2></div>
+        <ul class="pg-filter" id="pgFilter"></ul>
+        <ul class="pg-filter pg-order" id="pgSort" aria-label="Order the portfolio">
+          <li><button type="button" class="active" data-s="desc" data-t="Recent Work">Recent Work</button></li>
+          <li><button type="button" data-s="asc" data-t="Previous Chapters">Previous Chapters</button></li>
+        </ul>
+        <button class="pg-close" id="pgClose" type="button" aria-label="Close portfolio">&times;</button>
+      </div>
+      <p class="pg-note" id="pgNote"></p>
+      <div class="pg-body" id="pgBody"><div class="pg-grid" id="pgGrid"></div></div>
+    </div>
+    <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer" aria-hidden="true">
+      <button class="lb-close" id="lbClose" type="button" aria-label="Close image">&times;</button>
+      <div class="lb-count" id="lbCount"></div>
+      <button class="lb-nav lb-prev" id="lbPrev" type="button" aria-label="Previous image">&#8249;</button>
+      <button class="lb-nav lb-next" id="lbNext" type="button" aria-label="Next image">&#8250;</button>
+      <div class="lb-track" id="lbTrack"></div>
+      <div class="lb-info" id="lbInfo">
+        <h3 id="lbTitle"></h3>
+        <p class="lb-cap" id="lbCap"></p>
+        <p class="lb-det" id="lbDet"></p>
+      </div>
+      <button class="lb-toggle" id="lbToggle" type="button" aria-label="Show or hide details" title="Show / hide details">i</button>
+    </div>
+
+    <script type="text/javascript">
+      (function () {
+        /* ------------------------------------------------------------
+           EDIT YOUR GALLERY HERE
+           layout : "COLUMNSxROWS" tile size in the grid (2x2, 2x1, 1x2, 2x3, 1x1 ...)
+           cats   : filter category (branding, design, uiux, photography, motion)
+           images : first image is the tile cover; every image becomes a
+                    full-screen slide in the popup viewer.
+        ------------------------------------------------------------ */
+        /* DEMO_ITEMS are only shown until data/portfolio.json exists (it is created by portfolio-admin.php) */
+        var DEMO_ITEMS = [
+          { layout: "2x2", year: 2024, cats: "branding", title: "Corporate Branding", caption: "Logos",
+            details: "Logo design and identity marks, from concept sketches to final vector artwork. Replace this text with your project details.",
+            images: ["images/logo.jpg", "images/uc.jpg", "images/port.jpg"] },
+          { layout: "1x1", year: 2022, cats: "branding", title: "Corporate Branding", caption: "Stationery Sets",
+            details: "Business cards, letterheads, envelopes, folders and office ID cards designed as one consistent set. Replace this text with your project details.",
+            images: ["images/uc.jpg", "images/port.jpg"] },
+          { layout: "2x1", year: 2025, cats: "branding", title: "Corporate Branding", caption: "Merchandise",
+            details: "Branded cups and office items carrying the company identity. Replace this text with your project details.",
+            images: ["images/port.jpg", "images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x1", year: 2021, cats: "design", title: "360 Campaigns", caption: "Integrated campaigns",
+            details: "Campaign concepts carried across print, outdoor, digital and social touchpoints. Replace this text with your project details.",
+            images: ["images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x2", year: 2023, cats: "design", title: "Advertising Campaigns", caption: "Print & digital ads",
+            details: "Advertising visuals designed for print and digital placements. Replace this text with your project details.",
+            images: ["images/logo.jpg", "images/uc.jpg", "images/port.jpg"] },
+          { layout: "1x1", year: 2020, cats: "design", title: "Social Media Campaigns", caption: "Social content",
+            details: "Post series, stories and campaign visuals made for social platforms. Replace this text with your project details.",
+            images: ["images/uc.jpg", "images/port.jpg"] },
+          { layout: "1x1", year: 2025, cats: "uiux", title: "UI/UX", caption: "Websites",
+            details: "Website interface and experience design, from wireframes to final screens. Replace this text with your project details.",
+            images: ["images/port.jpg", "images/prtf/L-1.jpg"] },
+          { layout: "1x1", year: 2022, cats: "uiux", title: "UI/UX", caption: "Apps",
+            details: "Mobile app UI design, flows and interactive prototypes. Replace this text with your project details.",
+            images: ["images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x1", year: 2019, cats: "design", title: "Outdoors", caption: "Booths / Stalls",
+            details: "Exhibition booth and stall designs for events and trade shows. Replace this text with your project details.",
+            images: ["images/logo.jpg", "images/uc.jpg"] },
+          { layout: "1x1", year: 2024, cats: "design", title: "Outdoors", caption: "Hoardings / Standees / Signages",
+            details: "Hoardings, standees and signage designed for visibility and brand recall. Replace this text with your project details.",
+            images: ["images/uc.jpg", "images/port.jpg"] },
+          { layout: "2x2", year: 2023, cats: "design", title: "Outdoors", caption: "OOH",
+            details: "Out-of-home advertising designs for roadside and urban placements. Replace this text with your project details.",
+            images: ["images/port.jpg", "images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x1", year: 2021, cats: "design", title: "Corporate Designs / Presentations", caption: "Company Profiles",
+            details: "Company profile documents that present the business clearly and professionally. Replace this text with your project details.",
+            images: ["images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x1", year: 2025, cats: "design", title: "Corporate Designs / Presentations", caption: "Orientation Sessions",
+            details: "Presentation decks created for staff orientation and onboarding sessions. Replace this text with your project details.",
+            images: ["images/logo.jpg", "images/uc.jpg"] },
+          { layout: "2x1", year: 2020, cats: "design", title: "Corporate Designs / Presentations", caption: "Policies",
+            details: "Policy and handbook documents designed for easy reading. Replace this text with your project details.",
+            images: ["images/uc.jpg", "images/port.jpg", "images/prtf/L-1.jpg"] },
+          { layout: "2x1", year: 2022, cats: "motion", title: "Motion Graphics", caption: "TVCs",
+            details: "Television commercials, from storyboard to final edit. Replace this text with your project details.",
+            images: ["images/port.jpg", "images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "1x1", year: 2024, cats: "motion", title: "Motion Graphics", caption: "Animations",
+            details: "2D animation and animated explainers. Replace this text with your project details.",
+            images: ["images/prtf/L-1.jpg", "images/logo.jpg"] },
+          { layout: "2x3", year: 2023, cats: "motion", title: "Motion Graphics", caption: "Mix",
+            details: "Mixed-media video edits combining footage, graphics and animation. Replace this text with your project details.",
+            images: ["images/logo.jpg", "images/uc.jpg", "images/port.jpg"] },
+          { layout: "1x2", year: 2025, cats: "photography", title: "Photography", caption: "Photoshoots",
+            details: "Photoshoots planned, directed and retouched for campaigns and portfolios. Replace this text with your project details.",
+            images: ["images/uc.jpg", "images/port.jpg", "images/prtf/L-1.jpg"] },
+          { layout: "1x2", year: 2021, cats: "photography", title: "Photography", caption: "Product Shoots",
+            details: "Product photography with studio lighting and post-production. Replace this text with your project details.",
+            images: ["images/port.jpg", "images/prtf/L-1.jpg", "images/logo.jpg"] }
+        ];
+        var ITEMS = DEMO_ITEMS;
+        var RANDOM_LAYOUTS = ["1x1", "2x1", "1x2", "2x2"];
+        var FILTERS = [["*", "All"], ["branding", "Branding"], ["design", "Design"], ["uiux", "UI/UX"], ["photography", "Photography"], ["motion", "Motion"]];
+        var NOTES = {
+          "*": "Everything: branding, design, UI/UX, photography and motion.",
+          branding: "Logos, stationery sets, business cards, letterheads, envelopes, folders, cups, office ID cards",
+          design: "360 campaigns, advertising campaigns, graphic designs",
+          uiux: "Websites, app UI",
+          photography: "Photoshoots, product shoots",
+          motion: "TVCs, animation, mix videos"
+        };
+
+        var $ = function (id) { return document.getElementById(id); };
+        var pg = $("pg"), back = $("pgBack"), grid = $("pgGrid"), lb = $("lb"), track = $("lbTrack"), info = $("lbInfo");
+        var root = document.documentElement, openBtn = $("open-gallery");
+        var sortMode = "desc", ORDER = [], tiles = [], slides = [], idx = 0, filter = "*", lastFocus = null, scrollTimer, wheelLock = 0;
+
+        function cols() { var w = window.innerWidth; return w > 1000 ? 4 : w > 600 ? 3 : 2; }
+        /* Auto layout: pick tile sizes that fill the grid without gaps.
+           layouts = one entry per visible tile: "CxR" (fixed) or anything else (auto). Returns [cols, rows] for each tile. */
+        var AUTO_SIZES = [[2, 2], [2, 1], [1, 2], [1, 1]];
+        var AUTO_SEED = Math.floor(Math.random() * 4294967296); /* new look on every page load */
+        var AUTO_PREF = { "2x2": 0.6, "2x1": 0.4, "1x2": 0.4, "1x1": 0.2 };
+        function resolveSizes(layouts, n) {
+          function place(occ, c, r) {
+            for (var row = 0; ; row++) {
+              for (var col = 0; col <= n - c; col++) {
+                var free = true;
+                for (var i = 0; i < r && free; i++) for (var j = 0; j < c; j++) if (occ[(row + i) + "," + (col + j)]) { free = false; break; }
+                if (free) {
+                  var o = {}, k;
+                  for (k in occ) o[k] = 1;
+                  for (i = 0; i < r; i++) for (j = 0; j < c; j++) o[(row + i) + "," + (col + j)] = 1;
+                  return { occ: o, bottom: row + r };
+                }
+              }
+            }
+          }
+          var seed = AUTO_SEED >>> 0;
+          function rnd() { seed = (seed + 0x6D2B79F5) >>> 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+          var states = [{ occ: {}, filled: 0, maxr: 0, seq: [], last: "", cnt: {}, pen: 0, holes: 0 }];
+          layouts.forEach(function (lay) {
+            var m = /^(\d+)x(\d+)$/.exec(lay), next = [];
+            states.forEach(function (s) {
+              var cands = m ? [[Math.min(+m[1], n), +m[2]]] : AUTO_SIZES.map(function (z) { return [Math.min(z[0], n), z[1]]; });
+              cands.forEach(function (cr) {
+                var p = place(s.occ, cr[0], cr[1]), key = cr[0] + "x" + cr[1];
+                var filled = s.filled + cr[0] * cr[1], maxr = Math.max(s.maxr, p.bottom), pen = s.pen, cnt = s.cnt, last = s.last;
+                if (!m) {
+                  pen += (AUTO_PREF[key] || 0.5) + (s.last === key ? 2 : 0) + (s.cnt[key] || 0) * 0.15 + rnd();
+                  cnt = {}; for (var q in s.cnt) cnt[q] = s.cnt[q]; cnt[key] = (cnt[key] || 0) + 1; last = key;
+                }
+                next.push({ occ: p.occ, filled: filled, maxr: maxr, seq: s.seq.concat([cr]), last: last, cnt: cnt, pen: pen, holes: maxr * n - filled });
+              });
+            });
+            next.sort(function (a, b) { return (a.holes * 10 + a.pen) - (b.holes * 10 + b.pen); });
+            states = next.slice(0, 40);
+          });
+          states.sort(function (a, b) { return (a.holes * 50 + a.pen) - (b.holes * 50 + b.pen); });
+          return states[0].seq;
+        }
+
+        function applyLayout() {
+          var n = cols(); grid.style.setProperty("--n", n);
+          var vis = tiles.filter(function (t) { return !t.classList.contains("hide"); });
+          if (!vis.length) return;
+          /* fixed sizes are kept; "auto" tiles get the sizes that fill the grid best for the tiles currently shown */
+          var sizes = resolveSizes(vis.map(function (t) { return t.getAttribute("data-layout"); }), n);
+          vis.forEach(function (t, i) { t.style.gridColumn = "span " + sizes[i][0]; t.style.gridRow = "span " + sizes[i][1]; });
+        }
+        function buildFilters() {
+          FILTERS.forEach(function (f, i) {
+            var li = document.createElement("li"), b = document.createElement("button");
+            b.type = "button"; b.textContent = f[1]; b.setAttribute("data-t", f[1]); b.setAttribute("data-f", f[0]);
+            if (!i) b.className = "active";
+            li.appendChild(b); $("pgFilter").appendChild(li);
+          });
+        }
+        var MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        function shuffle(arr) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
+        function metaOf(it, k) { return (it.metas && it.metas[k]) || it; }
+        function dateKey(it, k) { var m = metaOf(it, k), y = +m.year || 0; return y ? y * 100 + (+m.month || 0) : 0; }
+        function dateLabel(m) { var y = +m.year || 0; return y ? ((+m.month ? MONTHS[+m.month] + " " : "") + y) : ""; }
+        /* compares two date keys for the current sort; images without a year always go last */
+        function cmpDate(a, b) { if (!a && !b) return 0; if (!a) return 1; if (!b) return -1; return sortMode === "asc" ? a - b : b - a; }
+        function imgOrder(it) {
+          var idx = it.images.map(function (_, k) { return k; });
+          if (sortMode === "default") return idx;
+          return idx.sort(function (a, b) { return cmpDate(dateKey(it, a), dateKey(it, b)) || a - b; });
+        }
+        function build() {
+          grid.innerHTML = ""; tiles = [];
+          if (!ITEMS.length) { var em = document.createElement("p"); em.className = "pg-empty"; em.textContent = "No projects have been added yet."; grid.appendChild(em); return; }
+          /* 1) one main tile per category  2) then every remaining image as its own tile.
+             Default: categories in upload order, extra tiles shuffled. Year sort: main tile = the first image in that order
+             (oldest or newest), and both the main tiles and the extra tiles are ordered by year of design. */
+          ORDER = ITEMS.map(imgOrder);
+          var mains = ITEMS.map(function (it, i) { return { i: i, k: ORDER[i][0], extra: false }; }), extras = [];
+          ITEMS.forEach(function (it, i) { for (var p = 1; p < ORDER[i].length; p++) extras.push({ i: i, k: ORDER[i][p], extra: true }); });
+          if (sortMode === "default") shuffle(extras);
+          else {
+            var by = function (x, y) { return cmpDate(dateKey(ITEMS[x.i], x.k), dateKey(ITEMS[y.i], y.k)) || (x.i - y.i) || (x.k - y.k); };
+            mains.sort(by); extras.sort(by);
+          }
+          mains.concat(extras).forEach(function (e) {
+            var it = ITEMS[e.i], dm = metaOf(it, e.k), meta = (e.extra && dm) || it, when = dateLabel(dm);
+            var a = document.createElement("a"); a.href = "#"; a.className = "pg-tile";
+            a.setAttribute("data-layout", e.extra ? "auto" : it.layout); a.setAttribute("data-cats", it.cats);
+            a.setAttribute("data-i", e.i); a.setAttribute("data-k", e.k); a.setAttribute("role", "button");
+            var img = new Image(); img.src = it.images[e.k]; img.alt = meta.title; img.loading = "lazy";
+            img.onerror = function () { a.className += " miss"; img.style.display = "none"; };
+            var fc = document.createElement("figcaption"), h = document.createElement("h3"), sp = document.createElement("span");
+            h.textContent = meta.title; sp.textContent = meta.caption + (when ? " \u00b7 " + when : ""); fc.appendChild(h); fc.appendChild(sp);
+            a.appendChild(img); a.appendChild(fc);
+            if (it.images.length > 1) { var cn = document.createElement("span"); cn.className = "pg-count"; cn.textContent = it.images.length; cn.title = it.images.length + " images"; a.appendChild(cn); }
+            grid.appendChild(a); tiles.push(a);
+          });
+          applyLayout();
+        }
+
+        /* load the real gallery written by portfolio-admin.php */
+        function loadProjects() {
+          if (!window.fetch) return;
+          fetch("data/portfolio.json?v=" + Date.now(), { cache: "no-store" })
+            .then(function (r) { if (!r.ok) throw new Error("no data"); return r.json(); })
+            .then(function (d) {
+              if (!d || !Array.isArray(d.projects)) return;
+              var ok = { branding: 1, design: 1, uiux: 1, photography: 1, motion: 1 };
+              /* every upload to the same category + sub-category becomes ONE tile; the badge shows the total image count */
+              var groups = {}, order = [];
+              d.projects.forEach(function (p) {
+                if (!p || !Array.isArray(p.images) || !p.images.length) return;
+                var key = (p.category || "") + "||" + (p.sub || "");
+                var meta = { title: p.title || p.category || "", caption: p.caption || p.sub || "", details: p.details || "", year: +p.year || 0, month: +p.month || 0 };
+                var lay = /^\d+x\d+$/.test(p.layout) || p.layout === "random" ? p.layout : "auto";
+                var g = groups[key];
+                if (!g) {
+                  g = groups[key] = { layout: lay, cats: ok[p.filter] ? p.filter : "design", title: meta.title, caption: meta.caption, details: meta.details, category: p.category || "", sub: p.sub || "", count: 0, images: [], metas: [] };
+                  order.push(g);
+                } else if (g.layout === "auto" && lay !== "auto") {
+                  g.layout = lay; /* a size you picked wins over Auto */
+                }
+                g.count++;
+                p.images.forEach(function (src) { g.images.push(src); g.metas.push(meta); });
+              });
+              ITEMS = order.map(function (g) {
+                if (g.count > 1) { g.title = g.category || g.title; g.caption = g.sub || g.caption; }
+                if (g.layout === "random") g.layout = RANDOM_LAYOUTS[Math.floor(Math.random() * RANDOM_LAYOUTS.length)];
+                return g;
+              });
+              build(); setFilter(filter);
+            })
+            .catch(function () { /* no data file yet: keep the demo items */ });
+        }
+
+        /* ---- gallery overlay ---- */
+        function openGallery(e) {
+          if (e) e.preventDefault();
+          lastFocus = document.activeElement;
+          pg.className = "pg open"; back.className = "pg-back open"; pg.setAttribute("aria-hidden", "false"); root.classList.add("pg-lock");
+          applyLayout(); $("pgClose").focus();
+        }
+        function closeGallery() {
+          pg.className = "pg"; back.className = "pg-back"; pg.setAttribute("aria-hidden", "true"); root.classList.remove("pg-lock");
+          if (lastFocus && lastFocus.focus) lastFocus.focus();
+        }
+        function setFilter(f) {
+          filter = f; $("pgNote").textContent = NOTES[f] || "";
+          tiles.forEach(function (t) {
+            var ok = f === "*" || (" " + t.getAttribute("data-cats") + " ").indexOf(" " + f + " ") > -1;
+            t.classList[ok ? "remove" : "add"]("hide");
+          });
+          applyLayout();
+          $("pgBody").scrollTop = 0;
+        }
+
+        /* ---- lightbox ---- */
+        function openLightbox(itemIndex, imgIndex) {
+          slides = []; var start = 0, seen = {};
+          tiles.forEach(function (t) {
+            if (t.classList.contains("hide")) return;
+            var i = +t.getAttribute("data-i");
+            if (seen[i]) return; seen[i] = 1;
+            (ORDER[i] || ITEMS[i].images.map(function (_, k) { return k; })).forEach(function (k) {
+              if (i === itemIndex && k === (imgIndex || 0)) start = slides.length;
+              slides.push({ src: ITEMS[i].images[k], it: metaOf(ITEMS[i], k) });
+            });
+          });
+          track.innerHTML = "";
+          slides.forEach(function (s) {
+            var d = document.createElement("div"); d.className = "lb-slide";
+            var img = new Image(); img.src = s.src; img.alt = s.it.title; img.draggable = false;
+            img.onerror = function () { var m = document.createElement("div"); m.className = "lb-miss"; m.textContent = "Image not found: " + s.src; d.replaceChild(m, img); };
+            d.appendChild(img); track.appendChild(d);
+          });
+          lb.className = "lb open"; lb.setAttribute("aria-hidden", "false");
+          go(start, true); $("lbClose").focus();
+        }
+        function closeLightbox() {
+          lb.className = "lb"; lb.setAttribute("aria-hidden", "true"); track.innerHTML = "";
+          if (lastTile) lastTile.focus();
+        }
+        var lastTile = null;
+        function show(i) {
+          idx = i; var s = slides[i]; if (!s) return;
+          $("lbTitle").textContent = s.it.title; $("lbCap").textContent = s.it.caption + (dateLabel(s.it) ? " \u00b7 " + dateLabel(s.it) : ""); $("lbDet").textContent = s.it.details;
+          $("lbCount").textContent = (i + 1) + " / " + slides.length;
+          $("lbPrev").disabled = i === 0; $("lbNext").disabled = i === slides.length - 1;
+        }
+        function go(i, instant) {
+          i = Math.max(0, Math.min(slides.length - 1, i));
+          track.style.scrollSnapType = instant ? "none" : "";
+          track.scrollTo({ left: i * track.clientWidth, behavior: instant ? "auto" : "smooth" });
+          if (instant) setTimeout(function () { track.style.scrollSnapType = ""; }, 50);
+          show(i);
+        }
+
+        /* ---- events ---- */
+        try {
+          var probe = document.createElement("span");
+          probe.className = "bg-magenta"; probe.style.cssText = "position:absolute;width:0;height:0;visibility:hidden";
+          document.body.appendChild(probe);
+          var pink = getComputedStyle(probe).backgroundColor; document.body.removeChild(probe);
+          if (pink && pink !== "transparent" && pink.indexOf("rgba(0, 0, 0, 0)") < 0) root.style.setProperty("--pg-accent", pink);
+        } catch (err) {}
+        buildFilters();
+        build();
+        loadProjects();
+        openBtn.addEventListener("click", openGallery);
+        $("pgClose").addEventListener("click", closeGallery);
+        back.addEventListener("click", closeGallery);
+        $("pgSort").addEventListener("click", function (e) {
+          var b = e.target.closest("button"); if (!b) return;
+          Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) { x.classList.remove("active"); });
+          b.classList.add("active"); sortMode = b.getAttribute("data-s"); build(); setFilter(filter);
+        });
+        setFilter("*");
+        $("pgFilter").addEventListener("click", function (e) {
+          var b = e.target.closest("button"); if (!b) return;
+          Array.prototype.forEach.call($("pgFilter").querySelectorAll("button"), function (x) { x.classList.remove("active"); });
+          b.classList.add("active"); setFilter(b.getAttribute("data-f"));
+        });
+        grid.addEventListener("click", function (e) {
+          var t = e.target.closest(".pg-tile"); if (!t) return; e.preventDefault();
+          lastTile = t; openLightbox(+t.getAttribute("data-i"), +(t.getAttribute("data-k") || 0));
+        });
+        $("lbClose").addEventListener("click", closeLightbox);
+        $("lbPrev").addEventListener("click", function () { go(idx - 1); });
+        $("lbNext").addEventListener("click", function () { go(idx + 1); });
+        $("lbToggle").addEventListener("click", function () { info.classList.toggle("off"); });
+        track.addEventListener("scroll", function () {
+          clearTimeout(scrollTimer);
+          scrollTimer = setTimeout(function () {
+            var i = Math.round(track.scrollLeft / track.clientWidth); if (i !== idx) show(i);
+          }, 60);
+        });
+        lb.addEventListener("wheel", function (e) {
+          e.preventDefault();
+          var d = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX, now = Date.now();
+          if (Math.abs(d) < 8 || now - wheelLock < 450) return;
+          wheelLock = now; go(idx + (d > 0 ? 1 : -1));
+        }, { passive: false });
+        window.addEventListener("resize", function () { applyLayout(); if (lb.className.indexOf("open") > -1) go(idx, true); });
+        window.addEventListener("keydown", function (e) {
+          var lbOpen = lb.className.indexOf("open") > -1, pgOpen = pg.className.indexOf("open") > -1;
+          if (!lbOpen && !pgOpen) return;
+          var k = e.key, used = true;
+          if (k === "Escape") lbOpen ? closeLightbox() : closeGallery();
+          else if (lbOpen && (k === "ArrowRight" || k === "ArrowDown" || k === "PageDown")) go(idx + 1);
+          else if (lbOpen && (k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp")) go(idx - 1);
+          else if (lbOpen && k === "Home") go(0);
+          else if (lbOpen && k === "End") go(slides.length - 1);
+          else used = false;
+          if (used) { e.preventDefault(); e.stopImmediatePropagation(); }
+        }, true);
+        /* keep the main site slider from reacting to gestures made inside the gallery */
+        ["wheel", "touchstart", "touchmove", "touchend", "mousedown", "mouseup", "mousemove", "keyup"].forEach(function (ev) {
+          [pg, back, lb].forEach(function (el) { el.addEventListener(ev, function (e) { e.stopPropagation(); }); });
+        });
+      })();
+    </script>
   </body>
 </html>
 
